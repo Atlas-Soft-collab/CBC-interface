@@ -1,24 +1,25 @@
 """
-اختبار مبدئي للـ parser على رسالة ASTM وهمية.
+اختبار مبدئي للـ parser على رسالة HL7 وهمية.
 هنحدّث الرسالة دي بعد ما ناخد رسالة حقيقية من الجهاز.
 """
-from core.protocol_parser import parse_astm_message
+from core.protocol_parser import parse_hl7_message
 
-FAKE_ASTM_MESSAGE = (
-    b"H|\\^&|||Dymind|||||||P|1\r"
-    b"P|1||PATIENT001||\r"
-    b"O|1|250908001||\r"
-    b"R|1|^^^WBC|7.2|10^9/L||N||F\r"
-    b"L|1|N\r"
+FAKE_HL7_MESSAGE = (
+    b"MSH|^~\\&|Dymind|LabDevice|LIS|LAB|20260910221600||ORU^R01|MSG001|P|2.3.1\r"
+    b"PID|1||PATIENT001^^^||\r"
+    b"OBR|1|250908001||\r"
+    b"OBX|1|NM|6690-2^WBC^LN||7.2|10*9/L|4.0-10.0|N|||F\r"
+    b"OBX|2|NM|789-8^RBC^LN||4.85|10*12/L|4.2-5.4|N|||F\r"
 )
 
 
-def test_parse_sample_id():
-    results = parse_astm_message(FAKE_ASTM_MESSAGE)
-    assert len(results) == 1
-    assert results[0].sample_id == "250908001"
+def test_parse_sample_id_and_values():
+    result = parse_hl7_message(FAKE_HL7_MESSAGE)
+    assert result.sample_id == "250908001"
+    assert result.wbc == 7.2
+    assert result.rbc == 4.85
 
 
 if __name__ == "__main__":
-    test_parse_sample_id()
-    print("OK - basic parser test passed")
+    test_parse_sample_id_and_values()
+    print("OK - basic HL7 parser test passed")

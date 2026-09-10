@@ -1,4 +1,3 @@
-
 # CBC Interface
 
 Interface بسيط بيستقبل نتائج تحاليل من جهاز Dymind CBC Analyzer عن طريق TCP/IP، ويحفظها محليًا، وممكن يبعتها لـ LIS.
@@ -7,7 +6,7 @@ Interface بسيط بيستقبل نتائج تحاليل من جهاز Dymind C
 - Dymind (سلسلة DF)
 - الاتصال: TCP/IP (مش RS-232)
 - الجهاز هيبعت البيانات لـ IP:Port بتاعين البرنامج ده
-- البروتوكول المتوقع: ASTM E1394 framing عبر TCP (لسه محتاج تأكيد من المانيول)
+- البروتوكول: **HL7 v2.x** عبر TCP بـ MLLP framing (مؤكد من مستند Dymind الرسمي "LIS Communication Protocol")
 
 ## الإعداد
 1. `pip install -r requirements.txt`
@@ -31,11 +30,8 @@ cbc-interface/
 
 ## الحالة الحالية
 - [x] هيكل المشروع الأساسي
-- [ ] تأكيد البروتوكول من المانيول (ASTM ولا HL7)
-- [ ] تنفيذ tcp_server.py
-- [ ] تنفيذ protocol_parser.py
-- [ ] اختبار فعلي مع الجهاز
-=======
-# CBC-interface
-interface for cbc analyzer
-
+- [x] تأكيد البروتوكول: HL7 v2.x عبر MLLP framing
+- [x] tcp_server.py - بيستقبل ويفك MLLP framing، بيسجل الرسائل الخام
+- [x] protocol_parser.py - بيفكك segments (MSH/PID/OBR/OBX) - محتاج تأكيد LOINC codes الحقيقية
+- [ ] اختبار فعلي مع الجهاز (محتاجين نشوف رسالة حقيقية نضبط عليها الـ mapping)
+- [ ] بناء الـ ACK response الصحيح يترجع للجهاز

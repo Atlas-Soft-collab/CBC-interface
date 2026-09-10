@@ -1,23 +1,26 @@
 """
 TCP Server بيستقبل الاتصال من جهاز الـ CBC (Dymind).
 الجهاز بيتصل بالـ IP/Port المحددين في config/settings.json
-ويبعت البيانات بصيغة ASTM (على الأغلب) مؤطرة بـ ENQ/STX/ETX/EOT.
+ويبعت البيانات بصيغة HL7 عبر TCP، مؤطرة بـ MLLP framing:
 
-ملاحظة: ده skeleton أساسي - لسه محتاج تأكيد شكل الفريمنج
-الفعلي من أول اتصال حقيقي مع الجهاز.
+    <VT> ... HL7 message ... <FS><CR>
+
+    VT (Vertical Tab) = 0x0B  -> بداية الرسالة
+    FS (File Separator) = 0x1C
+    CR (Carriage Return) = 0x0D -> نهاية الرسالة (FS ثم CR مع بعض)
+
+ده الـ framing القياسي لأي جهاز بيبعت HL7 v2.x عبر شبكة (MLLP - Minimal
+Lower Layer Protocol)، وده اللي أجهزة Dymind بتستخدمه حسب مستند
+"LIS Communication Protocol" الرسمي بتاعهم.
 """
 import logging
 import socket
 
 logger = logging.getLogger(__name__)
 
-# ASTM control characters (الأشهر في أجهزة الـ hematology analyzers)
-ENQ = b"\x05"
-ACK = b"\x06"
-NAK = b"\x15"
-STX = b"\x02"
-ETX = b"\x03"
-EOT = b"\x04"
+VT = b"\x0b"   # بداية الرسالة
+FS = b"\x1c"   # جزء من نهاية الرسالة
+CR = b"\x0d"   # جزء من نهاية الرسالة (FS + CR مع بعض = end of message)
 
 
 class CBCTCPServer:
@@ -44,12 +47,13 @@ class CBCTCPServer:
 
     def _handle_connection(self, conn: socket.socket):
         """
-        بيستقبل البيانات الخام ويسجلها.
-        دلوقتي بيطبع/يسجل أي حاجة توصل عشان نشوف شكل الرسالة الحقيقي
-        قبل ما نبني protocol_parser.py عليها.
+        بيقرا الـ stream ويفصل الرسايل على حسب MLLP framing (VT ... FS CR).
+        كل رسالة كاملة بتتسجل خام عشان نشوف شكلها الحقيقي قبل ما نبني
+        الـ HL7 parser عليها.
         """
-        conn.settimeout(30)
+        conn.settimeout(60)
         buffer = b""
+
         while True:
             data = conn.recv(4096)
             if not data:
@@ -57,9 +61,18 @@ class CBCTCPServer:
             buffer += data
             logger.debug(f"Raw bytes received: {data!r}")
 
-            # رد ACK مبدئي لأي إرسال (ASTM handshake عادةً محتاج كده)
-            if ENQ in data:
-                conn.sendall(ACK)
+            while VT in buffer and (FS + CR) in buffer:
+                start = buffer.index(VT) + 1
+                end = buffer.index(FS + CR)
+                message = buffer[start:end]
+                buffer = buffer[end + 2:]
 
-        logger.info(f"Full message received ({len(buffer)} bytes): {buffer!r}")
-        # TODO: تبعت الـ buffer دي لـ protocol_parser.py بعد ما نأكد الصيغة
+                logger.info(f"Full HL7 message received ({len(message)} bytes)")
+                logger.info(f"Message content: {message!r}")
+
+                # TODO: نمرر الرسالة لـ protocol_parser.py بعد ما نتأكد
+                # من بنية الـ segments (MSH/PID/OBR/OBX) من رسالة حقيقية
+
+                # نرد ACK بسيط عشان الجهاز يعرف إن الرسالة اتسلمت
+                # (لسه placeholder - محتاج نبني MSH صح حسب فيلدز الرسالة الأصلية)
+                # conn.sendall(VT + ack_bytes + FS + CR)

@@ -4,7 +4,7 @@
     "listen_port": 5600,
     "ack_timeout_sec": 10
   },
-  "protocol": "ASTM",
+  "protocol": "HL7",
   "matched_by": "sample_id",
   "database": {
     "path": "storage/cbc_results.db"
