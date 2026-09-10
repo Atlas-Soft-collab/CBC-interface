@@ -1,3 +1,4 @@
+
 # CBC Interface
 
 Interface بسيط بيستقبل نتائج تحاليل من جهاز Dymind CBC Analyzer عن طريق TCP/IP، ويحفظها محليًا، وممكن يبعتها لـ LIS.
@@ -34,3 +35,7 @@ cbc-interface/
 - [ ] تنفيذ tcp_server.py
 - [ ] تنفيذ protocol_parser.py
 - [ ] اختبار فعلي مع الجهاز
+=======
+# CBC-interface
+interface for cbc analyzer
+
