@@ -1,0 +1,16 @@
+{
+  "tcp_server": {
+    "listen_ip": "10.10.11.5",
+    "listen_port": 5600,
+    "ack_timeout_sec": 10
+  },
+  "protocol": "ASTM",
+  "matched_by": "sample_id",
+  "database": {
+    "path": "storage/cbc_results.db"
+  },
+  "logging": {
+    "level": "DEBUG",
+    "path": "logs/cbc_interface.log"
+  }
+}
