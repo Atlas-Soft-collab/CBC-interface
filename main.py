@@ -6,6 +6,7 @@ import json
 import logging
 import os
 from core.tcp_server import CBCTCPServer
+from storage.database import init_db
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -34,6 +35,10 @@ def main():
     config = load_config()
     setup_logging(config)
     logging.info("Starting CBC Interface...")
+
+    os.makedirs(os.path.dirname(os.path.join(BASE_DIR, config["database"]["path"])), exist_ok=True)
+    init_db()
+    logging.info("Database ready.")
 
     server = CBCTCPServer(
         host=config["tcp_server"]["listen_ip"],

@@ -5,16 +5,15 @@ TCP Server بيستقبل الاتصال من جهاز الـ CBC (Dymind).
 
     <VT> ... HL7 message ... <FS><CR>
 
-    VT (Vertical Tab) = 0x0B  -> بداية الرسالة
-    FS (File Separator) = 0x1C
-    CR (Carriage Return) = 0x0D -> نهاية الرسالة (FS ثم CR مع بعض)
-
 ده الـ framing القياسي لأي جهاز بيبعت HL7 v2.x عبر شبكة (MLLP - Minimal
 Lower Layer Protocol)، وده اللي أجهزة Dymind بتستخدمه حسب مستند
 "LIS Communication Protocol" الرسمي بتاعهم.
 """
 import logging
 import socket
+
+from core.protocol_parser import parse_hl7_message
+from core.sample_handler import handle_result
 
 logger = logging.getLogger(__name__)
 
@@ -48,8 +47,7 @@ class CBCTCPServer:
     def _handle_connection(self, conn: socket.socket):
         """
         بيقرا الـ stream ويفصل الرسايل على حسب MLLP framing (VT ... FS CR).
-        كل رسالة كاملة بتتسجل خام عشان نشوف شكلها الحقيقي قبل ما نبني
-        الـ HL7 parser عليها.
+        كل رسالة كاملة بتتبعت لـ protocol_parser ثم sample_handler.
         """
         conn.settimeout(60)
         buffer = b""
@@ -68,11 +66,16 @@ class CBCTCPServer:
                 buffer = buffer[end + 2:]
 
                 logger.info(f"Full HL7 message received ({len(message)} bytes)")
-                logger.info(f"Message content: {message!r}")
 
-                # TODO: نمرر الرسالة لـ protocol_parser.py بعد ما نتأكد
-                # من بنية الـ segments (MSH/PID/OBR/OBX) من رسالة حقيقية
+                try:
+                    result = parse_hl7_message(message)
+                    logger.info(
+                        f"Parsed sample_id={result.sample_id} "
+                        f"wbc={result.wbc} rbc={result.rbc} hgb={result.hgb}"
+                    )
+                    handle_result(result)
+                except Exception as e:
+                    logger.exception(f"Failed to parse/handle message: {e}")
 
-                # نرد ACK بسيط عشان الجهاز يعرف إن الرسالة اتسلمت
-                # (لسه placeholder - محتاج نبني MSH صح حسب فيلدز الرسالة الأصلية)
+                # TODO: نرد ACK صح للجهاز بعد ما نتأكد من MSH fields المطلوبة
                 # conn.sendall(VT + ack_bytes + FS + CR)

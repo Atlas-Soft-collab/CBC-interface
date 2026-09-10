@@ -13,6 +13,15 @@ Interface بسيط بيستقبل نتائج تحاليل من جهاز Dymind C
 2. عدّل `config/settings.json` بنفس الـ IP والـ Port المظبوطين على شاشة الجهاز (LIS Communication)
 3. `python main.py`
 
+## تجربة من غير الجهاز الحقيقي (Simulator)
+لو الجهاز مش متاح فيزيائيًا، تقدر تختبر السيرفر بالكامل بجهاز وهمي:
+
+1. عدّل مؤقتًا `listen_ip` في `config/settings.json` لـ `127.0.0.1` (بدل IP الجهاز الحقيقي)
+2. شغّل السيرفر: `python main.py`
+3. في terminal تاني: `python tools/device_simulator.py 127.0.0.1 5600`
+4. شوف الـ log وتأكد إن الرسالة اتفكّت واتحفظت في `storage/cbc_results.db`
+5. رجّع `listen_ip` لقيمته الحقيقية قبل ما تشتغل مع الجهاز الفعلي
+
 ## هيكل المشروع
 ```
 cbc-interface/
@@ -31,7 +40,9 @@ cbc-interface/
 ## الحالة الحالية
 - [x] هيكل المشروع الأساسي
 - [x] تأكيد البروتوكول: HL7 v2.x عبر MLLP framing
-- [x] tcp_server.py - بيستقبل ويفك MLLP framing، بيسجل الرسائل الخام
+- [x] tcp_server.py - بيستقبل ويفك MLLP framing، وبيبعت الرسالة لـ parser + database
 - [x] protocol_parser.py - بيفكك segments (MSH/PID/OBR/OBX) - محتاج تأكيد LOINC codes الحقيقية
-- [ ] اختبار فعلي مع الجهاز (محتاجين نشوف رسالة حقيقية نضبط عليها الـ mapping)
+- [x] database.py - بيحفظ النتائج بنجاح (SQLite)
+- [x] tools/device_simulator.py - جهاز وهمي لاختبار السلسلة كاملة من غير الجهاز الحقيقي (مُجرّب ✓)
+- [ ] اختبار فعلي مع الجهاز الحقيقي (محتاجين نشوف رسالة حقيقية نتأكد إن الـ mapping مطابق)
 - [ ] بناء الـ ACK response الصحيح يترجع للجهاز
