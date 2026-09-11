@@ -30,6 +30,13 @@ LOINC_TO_FIELD = {
     "788-0": "rdw",
 }
 
+# القيم اللي لازم يتحقق وجود واحدة منها على الأقل عشان نعتبر إن فيه
+# نتيجة فعلية اتقرأت من الرسالة (مش بس MSH/PID فاضيين من غير OBX).
+# الشرط "على الأقل واحدة" مش "الثلاثة كلهم" - عشان بعض الرسائل ممكن
+# تكون retest لقيمة واحدة بس. لو اتأكدنا إن كل رسالة من الجهاز لازم
+# تجيب الباقة كاملة، غيّر any() لـ all() في _validate_core_results.
+REQUIRED_CORE_FIELDS = ("wbc", "rbc", "hgb")
+
 
 @dataclass
 class CBCResult:
@@ -46,21 +53,45 @@ class CBCResult:
     raw_segments: list = field(default_factory=list)
 
 
+def _validate_core_results(result: CBCResult, message_control_id: str = "") -> None:
+    """
+    يرمي ValueError لو مفيش أي قيمة من REQUIRED_CORE_FIELDS موجودة فعليًا
+    (مش None) - عشان tcp_server.py يرد AE بدل AA تلقائيًا لما الرسالة
+    اتفكّت لكن مفيهاش أي نتيجة فعلية.
+    """
+    found_any = any(
+        getattr(result, field_name) is not None
+        for field_name in REQUIRED_CORE_FIELDS
+    )
+
+    if not found_any:
+        raise ValueError(
+            f"No core CBC values (WBC/RBC/HGB) found in message "
+            f"{message_control_id or '(no control id)'} - "
+            f"message parsed but contained no usable OBX results"
+        )
+
+
 def parse_hl7_message(raw: bytes) -> CBCResult:
     """
     بيفكك رسالة HL7 واحدة (من غير MLLP framing - ده بيتشال في tcp_server)
-    ويرجع CBCResult.
+    ويرجع CBCResult. يرمي ValueError لو الرسالة اتفكّت لكن مفيهاش أي
+    قيمة أساسية فعلية (راجع _validate_core_results).
     """
     text = raw.decode("ascii", errors="replace")
     segments = [seg for seg in text.split("\r") if seg]
 
     result = CBCResult(raw_segments=segments)
+    message_control_id = ""
 
     for segment in segments:
         fields_ = segment.split("|")
         segment_type = fields_[0]
 
-        if segment_type == "OBR" and len(fields_) > 2:
+        if segment_type == "MSH" and len(fields_) > 9:
+            message_control_id = fields_[9]
+
+        elif segment_type == "OBR" and len(fields_) > 2:
             # الـ Sample ID غالبًا في OBR-2 أو OBR-3 - محتاج تأكيد
             result.sample_id = fields_[2] or fields_[1]
 
@@ -74,5 +105,7 @@ def parse_hl7_message(raw: bytes) -> CBCResult:
                     setattr(result, field_name, float(value))
                 except ValueError:
                     pass  # القيمة مش رقم - نسيبها زي ما هي في raw_segments
+
+    _validate_core_results(result, message_control_id)
 
     return result
