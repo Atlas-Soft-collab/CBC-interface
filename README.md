@@ -44,5 +44,8 @@ cbc-interface/
 - [x] protocol_parser.py - بيفكك segments (MSH/PID/OBR/OBX) - محتاج تأكيد LOINC codes الحقيقية
 - [x] database.py - بيحفظ النتائج بنجاح (SQLite)
 - [x] tools/device_simulator.py - جهاز وهمي لاختبار السلسلة كاملة من غير الجهاز الحقيقي (مُجرّب ✓)
+- [x] core/ack_builder.py - بيبني ويرجع HL7 ACK (AA/AE/AR) للجهاز بعد كل رسالة (مُجرّب ✓)
+- [x] Error handling أقوى - قطع الاتصال المفاجئ متسجلش كـ crash
 - [ ] اختبار فعلي مع الجهاز الحقيقي (محتاجين نشوف رسالة حقيقية نتأكد إن الـ mapping مطابق)
-- [ ] بناء الـ ACK response الصحيح يترجع للجهاز
+- [ ] تحسين: خلي protocol_parser يرمي خطأ لو مفيش أي OBX segments (دلوقتي بيرجع AA حتى لو الرسالة فاضية من النتائج)
+- [ ] واجهة بسيطة لعرض النتائج live (ui/app_window.py لسه فاضي)
